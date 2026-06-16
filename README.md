@@ -18,13 +18,38 @@ The key questions answered are:
 ## Architecture
 
 ```mermaid
-flowchart LR
-    A["Machine JSON generator"] --> B["ADLS Gen2 raw landing"]
-    B --> C["Databricks Bronze tables"]
-    C --> D["Silver cleaned tables"]
-    D --> E["Gold KPI views"]
-    E --> F["Databricks AI/BI dashboard"]
-    E --> G["Ops audit and email-ready alert payload"]
+flowchart TB
+    subgraph Source["Source and Raw Landing"]
+        A["Simulated QR printing machines"]
+        B["Azure Function daily generator"]
+        C["ADLS Gen2 raw JSON landing"]
+        A --> B --> C
+    end
+
+    subgraph Lakehouse["Databricks Lakehouse"]
+        D["Bronze raw tables<br/>keep source-like records"]
+        E["Silver clean tables<br/>typed, deduplicated, standardized"]
+        F["Gold KPI views<br/>production, quality, health, downtime, OEE-style KPIs"]
+        C --> D --> E --> F
+    end
+
+    subgraph Serving["Serving and Operations"]
+        G["Databricks AI/BI dashboard<br/>business monitoring"]
+        H["Ops audit tables<br/>stage counts and run status"]
+        I["Email-ready alert payload<br/>Logic Apps connector pending"]
+        F --> G
+        F --> H --> I
+    end
+
+    subgraph Cost["Cost Controls"]
+        J["Serverless SQL Warehouse<br/>Small size, auto-stop"]
+        K["Manual/paused workflows<br/>no always-on cluster"]
+        L["Azure budget alerts"]
+    end
+
+    J -. runs SQL pipeline .-> D
+    K -. controls refresh .-> F
+    L -. monitors spend .-> J
 ```
 
 Current working path uses Databricks Serverless SQL for the medallion pipeline and dashboard refresh. The original PySpark notebook workflow is prepared, but the tested Azure region could not acquire VM capacity for the Databricks job cluster during testing.
@@ -99,4 +124,3 @@ Pending integration:
 - [KPI definitions](docs/kpi_definitions.md)
 - [Alerting and monitoring](docs/alerting_monitoring.md)
 - [Learning and quiz notes](docs/learning_and_quiz.md)
-
