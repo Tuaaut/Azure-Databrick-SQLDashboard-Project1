@@ -453,13 +453,6 @@ Simple explanation to remember:
 I prepared the original PySpark medallion pipeline, but the Databricks job cluster could not acquire Azure VM capacity in Southeast Asia. Instead of waiting, I completed the same Bronze/Silver/Gold and dashboard outcome with Databricks Serverless SQL Warehouse. The Serverless SQL workflow and dashboard refresh are verified.
 ```
 
-Learning notes and quiz review:
-
-```text
-docs/learning_and_quiz.md
-databricks_quiz.html
-```
-
 ## Remaining Work
 
 - Visually inspect the published dashboard in Databricks UI.

@@ -123,4 +123,3 @@ Pending integration:
 - [Azure resources](docs/azure_resources.md)
 - [KPI definitions](docs/kpi_definitions.md)
 - [Alerting and monitoring](docs/alerting_monitoring.md)
-- [Learning and quiz notes](docs/learning_and_quiz.md)

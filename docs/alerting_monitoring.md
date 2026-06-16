@@ -174,5 +174,4 @@ README.md
 docs/project_implementation_details.md
 docs/azure_resources.md
 docs/kpi_definitions.md
-docs/learning_and_quiz.md
 ```
