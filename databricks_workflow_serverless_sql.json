@@ -1,0 +1,29 @@
+{
+  "name": "qr-printing-serverless-sql-refresh-manual",
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "refresh_medallion_sql",
+      "sql_task": {
+        "warehouse_id": "a10d49c1b859854a",
+        "file": {
+          "path": "/Workspace/Users/pattaraworaphu@pattaraworaphu.onmicrosoft.com/azure-databricks-qr-printing/sql/serverless_manual_bootstrap.sql",
+          "source": "WORKSPACE"
+        }
+      }
+    },
+    {
+      "task_key": "refresh_dashboard",
+      "depends_on": [
+        {
+          "task_key": "refresh_medallion_sql"
+        }
+      ],
+      "dashboard_task": {
+        "dashboard_id": "01f1699203951f9389c58c97cd030c79",
+        "warehouse_id": "a10d49c1b859854a"
+      }
+    }
+  ]
+}
+

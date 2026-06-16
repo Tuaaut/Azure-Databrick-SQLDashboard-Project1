@@ -1,0 +1,25 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"],
+      "route": "manual-generate"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    },
+    {
+      "name": "output_blob",
+      "type": "blob",
+      "direction": "out",
+      "path": "raw/qr_printing/uploaded_at=azure_function_manual/machine_api_response.json",
+      "connection": "TARGET_STORAGE_CONNECTION"
+    }
+  ]
+}

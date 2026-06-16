@@ -1,0 +1,800 @@
+{
+  "datasets": [
+    {
+      "name": "production_kpi",
+      "displayName": "Production KPI",
+      "queryLines": [
+        "SELECT\n",
+        "  production_hour,\n",
+        "  machine_id,\n",
+        "  items_processed,\n",
+        "  printed_items,\n",
+        "  reject_rate_pct,\n",
+        "  qr_read_rate_pct,\n",
+        "  quality_pct\n",
+        "FROM adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary\n",
+        "ORDER BY production_hour"
+      ]
+    },
+    {
+      "name": "machine_health",
+      "displayName": "Machine Health",
+      "queryLines": [
+        "SELECT\n",
+        "  production_hour,\n",
+        "  machine_id,\n",
+        "  avg_actual_speed_cpm,\n",
+        "  performance_pct,\n",
+        "  avg_printhead_temp_c,\n",
+        "  avg_vibration_mm_s,\n",
+        "  ink_ml_per_1000_prints\n",
+        "FROM adb_qr_printing_demo.gold_qr_printing.machine_health_summary\n",
+        "ORDER BY production_hour"
+      ]
+    },
+    {
+      "name": "downtime_faults",
+      "displayName": "Downtime and Faults",
+      "queryLines": [
+        "SELECT\n",
+        "  production_hour,\n",
+        "  machine_id,\n",
+        "  fault_count,\n",
+        "  warning_count,\n",
+        "  downtime_minutes\n",
+        "FROM adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary\n",
+        "ORDER BY production_hour"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "production_overview",
+      "displayName": "Production Overview",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "prod_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Production Overview"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "prod_items_processed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "production_kpi",
+                  "fields": [
+                    {
+                      "name": "sum(items_processed)",
+                      "expression": "SUM(`items_processed`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Items Processed",
+                  "fieldName": "sum(items_processed)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Items Processed"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "prod_reject_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "production_kpi",
+                  "fields": [
+                    {
+                      "name": "avg(reject_rate_pct)",
+                      "expression": "AVG(`reject_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Reject Rate %",
+                  "fieldName": "avg(reject_rate_pct)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reject Rate %"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "prod_qr_read_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "production_kpi",
+                  "fields": [
+                    {
+                      "name": "avg(qr_read_rate_pct)",
+                      "expression": "AVG(`qr_read_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "QR Read Rate %",
+                  "fieldName": "avg(qr_read_rate_pct)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "QR Read Rate %"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "prod_hourly_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "production_kpi",
+                  "fields": [
+                    {
+                      "name": "production_hour",
+                      "expression": "`production_hour`"
+                    },
+                    {
+                      "name": "sum(items_processed)",
+                      "expression": "SUM(`items_processed`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Production Hour"
+                  },
+                  "displayName": "Production Hour",
+                  "fieldName": "production_hour",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "title": "Items Processed"
+                  },
+                  "displayName": "Items Processed",
+                  "fieldName": "sum(items_processed)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hourly Production"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "prod_detail_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "production_kpi",
+                  "fields": [
+                    {
+                      "name": "production_hour",
+                      "expression": "`production_hour`"
+                    },
+                    {
+                      "name": "machine_id",
+                      "expression": "`machine_id`"
+                    },
+                    {
+                      "name": "items_processed",
+                      "expression": "`items_processed`"
+                    },
+                    {
+                      "name": "reject_rate_pct",
+                      "expression": "`reject_rate_pct`"
+                    },
+                    {
+                      "name": "qr_read_rate_pct",
+                      "expression": "`qr_read_rate_pct`"
+                    },
+                    {
+                      "name": "quality_pct",
+                      "expression": "`quality_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "columns": [
+                  {
+                    "displayName": "Production Hour",
+                    "fieldName": "production_hour",
+                    "title": "Production Hour",
+                    "type": "datetime",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Machine",
+                    "fieldName": "machine_id",
+                    "title": "Machine",
+                    "type": "string",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Items",
+                    "fieldName": "items_processed",
+                    "title": "Items",
+                    "type": "integer",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Reject %",
+                    "fieldName": "reject_rate_pct",
+                    "title": "Reject %",
+                    "type": "float",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "QR Read %",
+                    "fieldName": "qr_read_rate_pct",
+                    "title": "QR Read %",
+                    "type": "float",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Quality %",
+                    "fieldName": "quality_pct",
+                    "title": "Quality %",
+                    "type": "float",
+                    "visible": true
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Production Detail"
+              },
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "version": 1,
+              "widgetType": "table",
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "machine_health",
+      "displayName": "Machine Health",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "health_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Machine Health"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "health_speed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "machine_health",
+                  "fields": [
+                    {
+                      "name": "avg(avg_actual_speed_cpm)",
+                      "expression": "AVG(`avg_actual_speed_cpm`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Avg Speed CPM",
+                  "fieldName": "avg(avg_actual_speed_cpm)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Speed CPM"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "health_performance",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "machine_health",
+                  "fields": [
+                    {
+                      "name": "avg(performance_pct)",
+                      "expression": "AVG(`performance_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Performance %",
+                  "fieldName": "avg(performance_pct)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Performance %"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "health_temp",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "machine_health",
+                  "fields": [
+                    {
+                      "name": "avg(avg_printhead_temp_c)",
+                      "expression": "AVG(`avg_printhead_temp_c`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Printhead Temp C",
+                  "fieldName": "avg(avg_printhead_temp_c)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Printhead Temp C"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "health_speed_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "machine_health",
+                  "fields": [
+                    {
+                      "name": "production_hour",
+                      "expression": "`production_hour`"
+                    },
+                    {
+                      "name": "avg(avg_actual_speed_cpm)",
+                      "expression": "AVG(`avg_actual_speed_cpm`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "axis": {
+                    "title": "Production Hour"
+                  },
+                  "displayName": "Production Hour",
+                  "fieldName": "production_hour",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "axis": {
+                    "title": "Actual Speed CPM"
+                  },
+                  "displayName": "Actual Speed CPM",
+                  "fieldName": "avg(avg_actual_speed_cpm)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hourly Actual Speed"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "downtime_faults",
+      "displayName": "Downtime and Faults",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "down_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Downtime and Faults"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "down_faults",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "downtime_faults",
+                  "fields": [
+                    {
+                      "name": "sum(fault_count)",
+                      "expression": "SUM(`fault_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Fault Count",
+                  "fieldName": "sum(fault_count)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Fault Count"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "down_warnings",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "downtime_faults",
+                  "fields": [
+                    {
+                      "name": "sum(warning_count)",
+                      "expression": "SUM(`warning_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Warning Count",
+                  "fieldName": "sum(warning_count)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Warning Count"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "down_minutes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "downtime_faults",
+                  "fields": [
+                    {
+                      "name": "sum(downtime_minutes)",
+                      "expression": "SUM(`downtime_minutes`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Downtime Minutes",
+                  "fieldName": "sum(downtime_minutes)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Downtime Minutes"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "down_detail_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "downtime_faults",
+                  "fields": [
+                    {
+                      "name": "production_hour",
+                      "expression": "`production_hour`"
+                    },
+                    {
+                      "name": "machine_id",
+                      "expression": "`machine_id`"
+                    },
+                    {
+                      "name": "fault_count",
+                      "expression": "`fault_count`"
+                    },
+                    {
+                      "name": "warning_count",
+                      "expression": "`warning_count`"
+                    },
+                    {
+                      "name": "downtime_minutes",
+                      "expression": "`downtime_minutes`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "columns": [
+                  {
+                    "displayName": "Production Hour",
+                    "fieldName": "production_hour",
+                    "title": "Production Hour",
+                    "type": "datetime",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Machine",
+                    "fieldName": "machine_id",
+                    "title": "Machine",
+                    "type": "string",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Faults",
+                    "fieldName": "fault_count",
+                    "title": "Faults",
+                    "type": "integer",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Warnings",
+                    "fieldName": "warning_count",
+                    "title": "Warnings",
+                    "type": "integer",
+                    "visible": true
+                  },
+                  {
+                    "displayName": "Downtime Minutes",
+                    "fieldName": "downtime_minutes",
+                    "title": "Downtime Minutes",
+                    "type": "integer",
+                    "visible": true
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Downtime Detail"
+              },
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "version": 1,
+              "widgetType": "table",
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ]
+}
+

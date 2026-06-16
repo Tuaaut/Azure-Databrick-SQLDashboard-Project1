@@ -1,0 +1,20 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "name": "timer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "%QR_TIMER_SCHEDULE%",
+      "useMonitor": true,
+      "runOnStartup": false
+    },
+    {
+      "name": "output_blob",
+      "type": "blob",
+      "direction": "out",
+      "path": "raw/qr_printing/uploaded_at=azure_function/machine_api_response.json",
+      "connection": "TARGET_STORAGE_CONNECTION"
+    }
+  ]
+}

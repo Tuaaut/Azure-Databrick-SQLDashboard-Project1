@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Local Azure/Databricks environment values.
+.azure_resources.env
+azure_function/local.settings.json
+
+# Local build/package output.
+.python_packages/
+.venv/
+venv/
+dist/
+build/
+

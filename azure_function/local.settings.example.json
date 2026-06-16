@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "QR_TIMER_SCHEDULE": "0 0 0 * * *",
+    "TARGET_STORAGE_CONNECTION": "UseDevelopmentStorage=true",
+    "QR_LINE_ID": "line-01",
+    "QR_MACHINE_ID": "M01",
+    "QR_PRODUCT_ID": "SKU-COLA-330",
+    "QR_PRODUCT_NAME": "Cola Can 330ml",
+    "QR_PLANNED_SPEED_CPM": "84.0",
+    "QR_EVENTS_PER_HOUR": "120"
+  }
+}

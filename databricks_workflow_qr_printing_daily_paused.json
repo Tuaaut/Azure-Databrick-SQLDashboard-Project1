@@ -1,0 +1,63 @@
+{
+  "name": "qr-printing-medallion-daily-paused",
+  "max_concurrent_runs": 1,
+  "schedule": {
+    "quartz_cron_expression": "0 0 7 * * ?",
+    "timezone_id": "Asia/Bangkok",
+    "pause_status": "PAUSED"
+  },
+  "job_clusters": [
+    {
+      "job_cluster_key": "qr_printing_single_node_job_cluster",
+      "new_cluster": {
+        "spark_version": "16.4.x-scala2.12",
+        "node_type_id": "Standard_D4s_v3",
+        "num_workers": 0,
+        "data_security_mode": "SINGLE_USER",
+        "single_user_name": "pattaraworaphu@pattaraworaphu.onmicrosoft.com",
+        "runtime_engine": "STANDARD",
+        "spark_conf": {
+          "spark.databricks.cluster.profile": "singleNode",
+          "spark.master": "local[*]"
+        },
+        "custom_tags": {
+          "ResourceClass": "SingleNode",
+          "Project": "qr-printing-demo"
+        }
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "task_key": "01_ingest_bronze",
+      "job_cluster_key": "qr_printing_single_node_job_cluster",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/pattaraworaphu@pattaraworaphu.onmicrosoft.com/azure-databricks-qr-printing/notebooks/01_ingest_bronze"
+      }
+    },
+    {
+      "task_key": "02_transform_silver",
+      "depends_on": [
+        {
+          "task_key": "01_ingest_bronze"
+        }
+      ],
+      "job_cluster_key": "qr_printing_single_node_job_cluster",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/pattaraworaphu@pattaraworaphu.onmicrosoft.com/azure-databricks-qr-printing/notebooks/02_transform_silver"
+      }
+    },
+    {
+      "task_key": "03_build_gold",
+      "depends_on": [
+        {
+          "task_key": "02_transform_silver"
+        }
+      ],
+      "job_cluster_key": "qr_printing_single_node_job_cluster",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/pattaraworaphu@pattaraworaphu.onmicrosoft.com/azure-databricks-qr-printing/notebooks/03_build_gold"
+      }
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "batch_id": "batch-20260616-0800",
+  "line_id": "line-01",
+  "print_events": [
+    {
+      "event_id": "evt-0001",
+      "event_ts": "2026-06-16T08:00:02Z",
+      "machine_id": "M01",
+      "product_id": "SKU-COLA-330",
+      "product_name": "Cola Can 330ml",
+      "qr_code": "QR-20260616-0001",
+      "print_status": "PRINTED",
+      "qr_read_success": true,
+      "is_reject": false,
+      "qr_grade_score": 0.96,
+      "position_error_mm": 0.21
+    },
+    {
+      "event_id": "evt-0002",
+      "event_ts": "2026-06-16T08:00:05Z",
+      "machine_id": "M01",
+      "product_id": "SKU-COLA-330",
+      "product_name": "Cola Can 330ml",
+      "qr_code": "QR-20260616-0002",
+      "print_status": "PRINTED",
+      "qr_read_success": false,
+      "is_reject": true,
+      "qr_grade_score": 0.41,
+      "position_error_mm": 1.34
+    }
+  ],
+  "machine_telemetry": [
+    {
+      "telemetry_ts": "2026-06-16T08:00:00Z",
+      "machine_id": "M01",
+      "actual_speed_cpm": 79.5,
+      "planned_speed_cpm": 84.0,
+      "printhead_temp_c": 42.8,
+      "vibration_mm_s": 1.21,
+      "ink_used_ml": 4.8
+    },
+    {
+      "telemetry_ts": "2026-06-16T08:01:00Z",
+      "machine_id": "M01",
+      "actual_speed_cpm": 82.0,
+      "planned_speed_cpm": 84.0,
+      "printhead_temp_c": 43.1,
+      "vibration_mm_s": 1.18,
+      "ink_used_ml": 4.9
+    }
+  ],
+  "machine_logs": [
+    {
+      "log_id": "log-0001",
+      "log_ts": "2026-06-16T08:00:05Z",
+      "machine_id": "M01",
+      "severity": "WARNING",
+      "fault_code": "QR_READ_FAIL",
+      "message": "QR reader failed validation",
+      "downtime_minutes": 0
+    }
+  ]
+}
+
