@@ -453,6 +453,30 @@ Simple explanation to remember:
 I prepared the original PySpark medallion pipeline, but the Databricks job cluster could not acquire Azure VM capacity in Southeast Asia. Instead of waiting, I completed the same Bronze/Silver/Gold and dashboard outcome with Databricks Serverless SQL Warehouse. The Serverless SQL workflow and dashboard refresh are verified.
 ```
 
+## Local-Only Learning Files
+
+The Databricks quiz and learning helper files are intentionally kept local and are not uploaded to GitHub.
+
+Local-only files:
+
+```text
+docs/learning_and_quiz.md
+databricks_quiz.html
+databricks_split_learning.html
+```
+
+Reason:
+
+```text
+These files are personal learning aids for guided practice. The public GitHub repo should stay focused on the business case, architecture, implementation, screenshots, and reusable project documentation.
+```
+
+Git handling:
+
+```text
+The files still exist on the local Mac, but they are excluded through .git/info/exclude so they are not tracked or pushed.
+```
+
 ## Remaining Work
 
 - Visually inspect the published dashboard in Databricks UI.
