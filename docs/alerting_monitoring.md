@@ -1,6 +1,6 @@
 # Alerting and Monitoring
 
-This project uses a Databricks audit layer to monitor the daily QR printing pipeline stages and prepare an email-ready alert message.
+This project uses a Databricks audit layer to monitor the daily QR printing pipeline stages, store a readable run summary, and send basic Databricks job success/failure email notifications.
 
 ## Current Status
 
@@ -14,12 +14,32 @@ Schema: ops_qr_printing
 Verified latest alert:
 
 ```text
-Subject: QR Pipeline Updated - 2026-06-16 - SUCCESS
+Subject: QR Pipeline Updated - 2026-06-15 - SUCCESS
 Recipient hint: Pattaratua@gmail.com
-Alert status: PENDING_EMAIL_CONNECTOR
+Alert status: INTERNAL_AUDIT_ONLY
 ```
 
-The alert payload is ready in Databricks. The remaining step for automatic email delivery is authorizing an Azure Logic Apps email connector such as Gmail or Outlook.
+The alert payload is stored in Databricks for review. Databricks Jobs sends daily success/failure email notifications to Gmail. No custom external email connector is currently configured.
+
+## Databricks Job Notification
+
+Working scheduled job:
+
+```text
+Job: qr-printing-serverless-sql-daily-refresh
+Job ID: 205329090700528
+Schedule: 07:10 Bangkok daily
+Pause status: UNPAUSED
+Latest test run: 811234223268645
+Result: SUCCESS
+```
+
+Email notifications:
+
+```text
+On success: Pattaratua@gmail.com
+On failure: Pattaratua@gmail.com
+```
 
 ## Why This Design
 
@@ -29,11 +49,9 @@ Use:
 
 ```text
 Databricks audit tables/views
-→ Azure Logic Apps Consumption
-→ email to Pattaratua@gmail.com
+→ Databricks job success/failure email to Pattaratua@gmail.com
+→ detailed run summary stored in Databricks tables/views
 ```
-
-Azure Logic Apps is preferred because it can receive a structured payload and send a readable business email.
 
 Azure Monitor is still useful for infrastructure alerts such as Function failure, Databricks resource errors, and cost alerts.
 
@@ -51,13 +69,13 @@ Stage-level audit:
 adb_qr_printing_demo.ops_qr_printing.pipeline_stage_audit
 ```
 
-Email-ready outbox:
+Audit summary outbox:
 
 ```text
 adb_qr_printing_demo.ops_qr_printing.email_alert_outbox
 ```
 
-Latest alert view:
+Latest audit summary view:
 
 ```text
 adb_qr_printing_demo.ops_qr_printing.latest_pipeline_alert_email
@@ -89,25 +107,25 @@ Dashboard link
 Cost reminder
 ```
 
-Verified stage summary from the first audit run:
+Verified stage summary from the real-data test run:
 
 ```text
 ADLS_RAW: total 4387, new 4387, SUCCESS
-BRONZE: total 5, new 5, SUCCESS
-SILVER: total 5, new 5, SUCCESS
-GOLD: total 3, new 3, SUCCESS
+BRONZE: total 4387, new 4382, SUCCESS
+SILVER: total 4387, new 4382, SUCCESS
+GOLD: total 68, new 65, SUCCESS
 ```
 
 Important note:
 
 ```text
-The current raw Azure Function output has 2880 print events, 1440 telemetry rows, and 67 log rows.
-The current Bronze/Silver/Gold tables still reflect the small Serverless SQL demo sample until the ingestion path is connected to read that raw Function output.
+The current raw daily JSON has 2880 print events, 1440 telemetry rows, and 67 log rows.
+The current Bronze/Silver/Gold tables now reflect that real generated daily JSON test load.
 ```
 
-## Email Body
+## Stored Summary Body
 
-The email-ready body includes:
+The stored summary body includes:
 
 ```text
 Pipeline status
@@ -133,7 +151,14 @@ Cost reminder
 
 ## How to Run Manually
 
-Run the monitoring SQL:
+Run the scheduled job manually:
+
+```bash
+export DATABRICKS_HOST="https://adb-7405612371776871.11.azuredatabricks.net"
+databricks jobs run-now 205329090700528
+```
+
+Run only the monitoring SQL:
 
 ```bash
 export DATABRICKS_HOST="https://adb-7405612371776871.11.azuredatabricks.net"
@@ -141,7 +166,7 @@ export DATABRICKS_HOST="https://adb-7405612371776871.11.azuredatabricks.net"
 databricks warehouses stop a10d49c1b859854a
 ```
 
-Preview the latest email alert:
+Preview the latest stored summary:
 
 ```sql
 SELECT *
@@ -154,18 +179,6 @@ Preview the latest run:
 SELECT *
 FROM adb_qr_printing_demo.ops_qr_printing.latest_pipeline_run_summary;
 ```
-
-## Remaining Email Automation Step
-
-To fully automate email delivery:
-
-1. Create Azure Logic Apps Consumption workflow.
-2. Add an HTTP request trigger.
-3. Add Gmail or Outlook send-email action.
-4. Authorize the connector interactively.
-5. Send the `subject` and `body` from `latest_pipeline_alert_email`.
-
-Connector authorization is the part that normally requires the user to sign in through Azure Portal.
 
 ## Related Docs
 

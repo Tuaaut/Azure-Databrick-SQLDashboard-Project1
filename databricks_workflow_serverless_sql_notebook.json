@@ -1,6 +1,20 @@
 {
-  "name": "qr-printing-serverless-sql-notebook-refresh-manual",
+  "name": "qr-printing-serverless-sql-daily-refresh",
   "max_concurrent_runs": 1,
+  "schedule": {
+    "quartz_cron_expression": "0 10 7 * * ?",
+    "timezone_id": "Asia/Bangkok",
+    "pause_status": "UNPAUSED"
+  },
+  "email_notifications": {
+    "on_success": [
+      "Pattaratua@gmail.com"
+    ],
+    "on_failure": [
+      "Pattaratua@gmail.com"
+    ],
+    "no_alert_for_skipped_runs": false
+  },
   "tasks": [
     {
       "task_key": "refresh_medallion_sql_notebook",
@@ -21,7 +35,19 @@
         "dashboard_id": "01f1699203951f9389c58c97cd030c79",
         "warehouse_id": "a10d49c1b859854a"
       }
+    },
+    {
+      "task_key": "create_pipeline_audit_email_payload",
+      "depends_on": [
+        {
+          "task_key": "refresh_dashboard"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/pattaraworaphu@pattaraworaphu.onmicrosoft.com/azure-databricks-qr-printing/sql/pipeline_audit_monitoring.sql",
+        "source": "WORKSPACE",
+        "warehouse_id": "a10d49c1b859854a"
+      }
     }
   ]
 }
-

@@ -122,32 +122,31 @@ All three clusters are terminated. No cluster is running.
 
 ## Verified Medallion Objects
 
-Created and verified through serverless SQL:
+Created and verified through serverless SQL after the real-data test run:
 
 ```text
-adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 2 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 1 row
-adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 2 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 1 row
+adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2880 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 1440 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 67 rows
+adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2880 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 1440 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 67 rows
 adb_qr_printing_demo.silver_qr_printing.dim_machine: 1 row
 adb_qr_printing_demo.silver_qr_printing.dim_product: 1 row
-adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 1 row
-adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 1 row
-adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 1 row
+adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 24 rows
+adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 24 rows
+adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 20 rows
 ```
 
 Production overview KPI check:
 
 ```text
-production_hour: 2026-06-16T08:00:00.000Z
+latest_production_hour: 2026-06-15T23:00:00.000Z
 machine_id: M01
-items_processed: 2
-printed_items: 2
-reject_rate_pct: 50.00
-qr_read_rate_pct: 50.00
-quality_pct: 50.00
+items_processed: 2880
+avg_reject_rate_pct: 9.55
+avg_qr_read_rate_pct: 98.23
+avg_quality_pct: 90.45
 ```
 
 ## Saved Databricks SQL Queries
@@ -222,19 +221,28 @@ Downtime and Faults: 5 widgets
 
 ## Serverless SQL Workflow
 
-- Workflow name: `qr-printing-serverless-sql-notebook-refresh-manual`
+- Workflow name: `qr-printing-serverless-sql-daily-refresh`
 - Job ID: `205329090700528`
-- Latest verified run ID: `295772038081916`
+- Latest verified run ID: `811234223268645`
 - Result: `SUCCESS`
+- Schedule: `07:10 Bangkok daily`
+- Pause status: `UNPAUSED`
+- Databricks job email notifications: success/failure
+- Notification recipient:
+
+```text
+Pattaratua@gmail.com
+```
 - Tasks:
 
 ```text
 refresh_medallion_sql_notebook
 → refresh_dashboard
+→ create_pipeline_audit_email_payload
 ```
 
 - Compute: `Serverless Starter Warehouse`
-- Current status: workflow created and successfully run once.
+- Current status: workflow scheduled, unpaused, and successfully test-run.
 
 ## Databricks Alerting and Monitoring
 
@@ -246,15 +254,16 @@ refresh_medallion_sql_notebook
 - Latest alert view: `latest_pipeline_alert_email`
 - Latest run view: `latest_pipeline_run_summary`
 - Current email recipient hint: `Pattaratua@gmail.com`
-- Current delivery status: `PENDING_EMAIL_CONNECTOR`
+- Current delivery status: `INTERNAL_AUDIT_ONLY`
+- Databricks job-level success/failure email notifications are enabled separately from this stored audit summary.
 
-Verified first audit stage summary:
+Verified real-data audit stage summary:
 
 ```text
 ADLS_RAW: total 4387, new 4387, SUCCESS
-BRONZE: total 5, new 5, SUCCESS
-SILVER: total 5, new 5, SUCCESS
-GOLD: total 3, new 3, SUCCESS
+BRONZE: total 4387, new 4382, SUCCESS
+SILVER: total 4387, new 4382, SUCCESS
+GOLD: total 68, new 65, SUCCESS
 ```
 
 Detailed alerting notes:

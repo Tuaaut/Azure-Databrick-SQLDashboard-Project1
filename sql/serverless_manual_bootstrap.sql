@@ -4,22 +4,71 @@ CREATE SCHEMA IF NOT EXISTS adb_qr_printing_demo.silver_qr_printing;
 
 CREATE SCHEMA IF NOT EXISTS adb_qr_printing_demo.gold_qr_printing;
 
+CREATE VOLUME IF NOT EXISTS adb_qr_printing_demo.bronze_qr_printing.raw_files;
+
 CREATE OR REPLACE TABLE adb_qr_printing_demo.bronze_qr_printing.print_events_raw AS
-SELECT * FROM VALUES
-  ('evt-0001', timestamp('2026-06-16T08:00:02Z'), 'M01', 'SKU-COLA-330', 'Cola Can 330ml', 'QR-20260616-0001', 'PRINTED', true, false, 0.96D, 0.21D),
-  ('evt-0002', timestamp('2026-06-16T08:00:05Z'), 'M01', 'SKU-COLA-330', 'Cola Can 330ml', 'QR-20260616-0002', 'PRINTED', false, true, 0.41D, 1.34D)
-AS t(event_id, event_ts, machine_id, product_id, product_name, qr_code, print_status, qr_read_success, is_reject, qr_grade_score, position_error_mm);
+WITH raw AS (
+  SELECT *
+  FROM read_files(
+    '/Volumes/adb_qr_printing_demo/bronze_qr_printing/raw_files/qr_printing/start_date=2026-06-15/machine_api_response.json',
+    format => 'json',
+    multiLine => true
+  )
+)
+SELECT
+  event.event_id,
+  timestamp(event.event_ts) AS event_ts,
+  event.machine_id,
+  event.product_id,
+  event.product_name,
+  event.qr_code,
+  event.print_status,
+  boolean(event.qr_read_success) AS qr_read_success,
+  boolean(event.is_reject) AS is_reject,
+  double(event.qr_grade_score) AS qr_grade_score,
+  double(event.position_error_mm) AS position_error_mm
+FROM raw
+LATERAL VIEW explode(print_events) pe AS event;
 
 CREATE OR REPLACE TABLE adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw AS
-SELECT * FROM VALUES
-  (timestamp('2026-06-16T08:00:00Z'), 'M01', 79.5D, 84.0D, 42.8D, 1.21D, 4.8D),
-  (timestamp('2026-06-16T08:01:00Z'), 'M01', 82.0D, 84.0D, 43.1D, 1.18D, 4.9D)
-AS t(telemetry_ts, machine_id, actual_speed_cpm, planned_speed_cpm, printhead_temp_c, vibration_mm_s, ink_used_ml);
+WITH raw AS (
+  SELECT *
+  FROM read_files(
+    '/Volumes/adb_qr_printing_demo/bronze_qr_printing/raw_files/qr_printing/start_date=2026-06-15/machine_api_response.json',
+    format => 'json',
+    multiLine => true
+  )
+)
+SELECT
+  timestamp(telemetry.telemetry_ts) AS telemetry_ts,
+  telemetry.machine_id,
+  double(telemetry.actual_speed_cpm) AS actual_speed_cpm,
+  double(telemetry.planned_speed_cpm) AS planned_speed_cpm,
+  double(telemetry.printhead_temp_c) AS printhead_temp_c,
+  double(telemetry.vibration_mm_s) AS vibration_mm_s,
+  double(telemetry.ink_used_ml) AS ink_used_ml
+FROM raw
+LATERAL VIEW explode(machine_telemetry) mt AS telemetry;
 
 CREATE OR REPLACE TABLE adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw AS
-SELECT * FROM VALUES
-  ('log-0001', timestamp('2026-06-16T08:00:05Z'), 'M01', 'WARNING', 'QR_READ_FAIL', 'QR reader failed validation', 0)
-AS t(log_id, log_ts, machine_id, severity, fault_code, message, downtime_minutes);
+WITH raw AS (
+  SELECT *
+  FROM read_files(
+    '/Volumes/adb_qr_printing_demo/bronze_qr_printing/raw_files/qr_printing/start_date=2026-06-15/machine_api_response.json',
+    format => 'json',
+    multiLine => true
+  )
+)
+SELECT
+  log.log_id,
+  timestamp(log.log_ts) AS log_ts,
+  log.machine_id,
+  log.severity,
+  log.fault_code,
+  log.message,
+  double(log.downtime_minutes) AS downtime_minutes
+FROM raw
+LATERAL VIEW explode(machine_logs) ml AS log;
 
 CREATE OR REPLACE TABLE adb_qr_printing_demo.silver_qr_printing.fact_print_event AS
 SELECT DISTINCT

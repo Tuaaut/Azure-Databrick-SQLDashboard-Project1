@@ -21,12 +21,14 @@ Current working path:
 
 ```text
 Serverless SQL
+→ Unity Catalog Volume raw JSON
 → Bronze tables
 → Silver tables
 → Gold KPI views
 → AI/BI dashboard with widgets
 → Serverless SQL workflow refresh
 → Ops audit tables and email-ready alert payload
+→ Databricks job success/failure email notification
 ```
 
 ## What Is Done
@@ -42,17 +44,21 @@ Serverless SQL
 - PySpark Databricks Workflow created.
 - Serverless SQL Warehouse verified.
 - Bronze/Silver/Gold tables and views created through Serverless SQL.
+- Real generated daily JSON loaded through Serverless SQL from a Unity Catalog Volume.
 - Row counts and KPI output verified.
 - Saved SQL queries created.
 - AI/BI dashboard created, published, and populated with widgets.
 - Working Serverless SQL workflow created and successfully run.
 - Dashboard refresh task successfully run.
+- Daily Serverless SQL workflow schedule enabled.
+- Databricks job success/failure email notifications enabled.
 - Databricks-focused $20/month Azure budget alerts created.
 - Daily machine JSON generator added.
 - One generated daily JSON payload uploaded to ADLS.
 - Paused daily Databricks PySpark workflow created.
 - Pipeline audit and email-ready alert payload created.
 - Final compute check verified all clusters terminated and SQL Warehouse stopped.
+- Real-data Serverless SQL run verified all tasks successfully and SQL Warehouse was stopped afterward.
 
 ## What Is Blocked
 
@@ -165,6 +171,16 @@ Status: PAUSED
 ```
 
 This workflow is intentionally paused by default. It uses the PySpark notebook path and will need Databricks cluster capacity before it can run.
+
+The working daily automation now uses the Serverless SQL workflow instead:
+
+```text
+Workflow name: qr-printing-serverless-sql-daily-refresh
+Job ID: 205329090700528
+Schedule: 07:10 Bangkok daily
+Status: UNPAUSED
+Email notifications: success/failure to Pattaratua@gmail.com
+```
 
 ### Azure Function Raw Generator
 
@@ -287,7 +303,7 @@ Azure Function timer
 - PySpark workflow job ID: `383404437598073`
 - Paused daily PySpark workflow job ID: `67401473932489`
 - Serverless SQL workflow job ID: `205329090700528`
-- Latest successful Serverless SQL workflow run: `295772038081916`
+- Latest successful Serverless SQL workflow run: `811234223268645`
 - Dashboard ID: `01f1699203951f9389c58c97cd030c79`
 
 Published dashboard:
@@ -310,32 +326,31 @@ docs/alerting_monitoring.md
 
 ## Verified Data Objects
 
-Created and verified through Serverless SQL:
+Created and verified through Serverless SQL after the real-data test run:
 
 ```text
-adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 2 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 1 row
-adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 2 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 1 row
+adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2880 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 1440 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 67 rows
+adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2880 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 1440 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 67 rows
 adb_qr_printing_demo.silver_qr_printing.dim_machine: 1 row
 adb_qr_printing_demo.silver_qr_printing.dim_product: 1 row
-adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 1 row
-adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 1 row
-adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 1 row
+adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 24 rows
+adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 24 rows
+adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 20 rows
 ```
 
 Verified KPI example:
 
 ```text
-production_hour: 2026-06-16T08:00:00.000Z
+latest_production_hour: 2026-06-15T23:00:00.000Z
 machine_id: M01
-items_processed: 2
-printed_items: 2
-reject_rate_pct: 50.00
-qr_read_rate_pct: 50.00
-quality_pct: 50.00
+items_processed: 2880
+avg_reject_rate_pct: 9.55
+avg_qr_read_rate_pct: 98.23
+avg_quality_pct: 90.45
 ```
 
 ## Dashboard
@@ -366,7 +381,8 @@ QR Downtime and Faults: 039687cc-b864-4ead-a420-4932b1a18a10
 
 - No always-on all-purpose cluster.
 - SQL Warehouse is Serverless, Small, with 10-minute auto-stop.
-- Workflows are manual trigger only.
+- Working Serverless SQL workflow is scheduled daily at 07:10 Bangkok.
+- PySpark cluster workflows remain manual or paused.
 - Broad project resource-group budget was removed.
 - Databricks-focused budgets were created instead.
 - Alerts are configured at 50% and 90%.

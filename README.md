@@ -36,7 +36,7 @@ flowchart TB
     subgraph Serving["Serving and Operations"]
         G["Databricks AI/BI dashboard<br/>business monitoring"]
         H["Ops audit tables<br/>stage counts and run status"]
-        I["Email-ready alert payload<br/>Logic Apps connector pending"]
+        I["Audit summary payload<br/>Databricks job email enabled"]
         F --> G
         F --> H --> I
     end
@@ -62,7 +62,7 @@ Current working path uses Databricks Serverless SQL for the medallion pipeline a
 - Delta-style Bronze, Silver, and Gold lakehouse layers
 - ADLS Gen2 for raw JSON landing and reprocessing
 - Azure Function Consumption plan for daily raw JSON generation
-- Databricks Workflows / Jobs for manual and scheduled refresh patterns
+- Databricks Workflows / Jobs for scheduled refresh
 - Databricks AI/BI Dashboard for KPI presentation
 - SQL, Python, shell scripts, Azure CLI, Databricks CLI
 - Azure Budget alerts and email-ready pipeline monitoring
@@ -91,22 +91,20 @@ Working:
 
 - Raw QR printing JSON generation
 - ADLS Gen2 raw landing pattern
-- Bronze, Silver, and Gold SQL pipeline
+- Bronze, Silver, and Gold SQL pipeline using real generated daily JSON
 - Gold KPI views for production, quality, machine health, downtime, and OEE-style reporting
 - Databricks dashboard asset
 - Serverless SQL Warehouse with auto-stop
 - Databricks workflow/job definitions
 - Pipeline audit tables and email-ready alert payload
+- Daily Serverless SQL workflow success/failure email notification
+- Real-data Serverless SQL test run with 2,880 print events, 1,440 telemetry rows, and 67 log rows
 - Azure Function daily generator deployment path
 
 Prepared but blocked:
 
 - PySpark notebook workflow on Databricks job cluster
 - Blocker: VM acquisition stayed pending in Southeast Asia during testing
-
-Pending integration:
-
-- Automatic email delivery through Logic Apps or another email connector
 
 ## Repository Map
 

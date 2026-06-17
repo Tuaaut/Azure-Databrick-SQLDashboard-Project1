@@ -128,9 +128,9 @@ SELECT
   current_timestamp() AS run_ts,
   coalesce(kpi.business_date, current_date()) AS business_date,
   'SUCCESS' AS status,
-  'MANUAL_MONITORING_REFRESH' AS trigger_type,
-  'raw/qr_printing/uploaded_at=azure_function_manual/machine_api_response.json' AS raw_source_path,
-  'VERIFIED_MANUAL_AZURE_FUNCTION_OUTPUT' AS raw_file_status,
+  'SERVERLESS_SQL_REFRESH' AS trigger_type,
+  '/Volumes/adb_qr_printing_demo/bronze_qr_printing/raw_files/qr_printing/start_date=2026-06-15/machine_api_response.json' AS raw_source_path,
+  'VERIFIED_VOLUME_RAW_JSON_OUTPUT' AS raw_file_status,
   1525874L AS raw_file_size_bytes,
   2880L AS raw_print_events_count,
   1440L AS raw_machine_telemetry_count,
@@ -272,12 +272,12 @@ INSERT INTO adb_qr_printing_demo.ops_qr_printing.email_alert_outbox
 SELECT
   run_id,
   run_ts AS created_at,
-  'PENDING_EMAIL_CONNECTOR' AS alert_status,
+  'INTERNAL_AUDIT_ONLY' AS alert_status,
   'Pattaratua@gmail.com' AS recipient_hint,
   alert_subject AS subject,
   alert_body AS body,
-  'Azure Logic Apps Consumption' AS delivery_service,
-  'Email-ready payload created. Logic App email connector authorization is the remaining delivery step.' AS delivery_note
+  'Databricks audit table' AS delivery_service,
+  'Stored in Databricks for review. External rich email connector is not configured.' AS delivery_note
 FROM adb_qr_printing_demo.ops_qr_printing.current_pipeline_alert_snapshot;
 
 CREATE OR REPLACE VIEW adb_qr_printing_demo.ops_qr_printing.latest_pipeline_alert_email AS
