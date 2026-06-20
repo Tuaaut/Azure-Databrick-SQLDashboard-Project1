@@ -2,6 +2,8 @@
 
 Created on 2026-06-16.
 
+Business timestamps in Bronze, Silver, Gold, and latest monitoring views are stored as Bangkok-local `TIMESTAMP_NTZ` values.
+
 ## Subscription
 
 - Name: Azure subscription 1
@@ -69,25 +71,58 @@ https://adb-7405612371776871.11.azuredatabricks.net
 - Indexed functions:
 
 ```text
-ManualGenerate
-TimerGenerate
+generate_daily_machine_json
+manual_generate
+unpause_databricks_job
+pause_databricks_job
 ```
 
 Verified manual output:
 
 ```text
-raw/qr_printing/uploaded_at=azure_function_manual/machine_api_response.json
-size: 1525874 bytes
+raw/qr_printing/uploaded_at=azure_function_manual/YYYYMMDDTHHMMSSZ/machine_api_response.json
+size: 1524098 bytes
 print_events: 2880
 machine_telemetry: 1440
-machine_logs: 67
-business window: 2026-06-15T00:00:00Z to 2026-06-16T00:00:00Z
+machine_logs: 61
+business window: 2026-06-17T00:00:00Z to 2026-06-18T00:00:00Z
 ```
 
 Scheduled daily output:
 
 ```text
-raw/qr_printing/uploaded_at=azure_function/machine_api_response.json
+raw/qr_printing/uploaded_at=azure_function/YYYYMMDDTHHMMSSZ/machine_api_response.json
+```
+
+Databricks schedule controller:
+
+```text
+07:05 Bangkok: unpause Databricks job 205329090700528
+07:30 Bangkok: pause Databricks job 205329090700528
+```
+
+Controller implementation:
+
+```text
+Azure Function managed identity: func-qr-daily-740561
+Databricks service principal application ID: ad68d192-e8ce-4ccc-b182-81ab46fd1a0d
+Databricks permission: CAN_MANAGE on job 205329090700528 only
+```
+
+## Databricks ADLS Access
+
+- Storage credential: `qr_adls_raw_credential`
+- External location: `qr_raw_adls_location`
+- External location URL:
+
+```text
+abfss://raw@qrdbx06162114.dfs.core.windows.net/qr_printing
+```
+
+- Daily SQL source glob:
+
+```text
+abfss://raw@qrdbx06162114.dfs.core.windows.net/qr_printing/uploaded_at=azure_function/*/machine_api_response.json
 ```
 
 Deployment helper:
@@ -115,38 +150,35 @@ All three clusters are terminated. No cluster is running.
 
 - Warehouse: `Serverless Starter Warehouse`
 - ID: `a10d49c1b859854a`
-- Size: `Small`
+- Size: `2X-Small`
 - Serverless: enabled
 - Auto-stop: 10 minutes
 - Current verified state after setup: `STOPPED`
 
 ## Verified Medallion Objects
 
-Created and verified through serverless SQL after the real-data test run:
+Created and verified through serverless SQL after the direct ADLS incremental-source fix:
 
 ```text
-adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2880 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 1440 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 67 rows
-adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2880 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 1440 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 67 rows
+adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 11520 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 5760 rows
+adb_qr_printing_demo.silver_qr_printing.fact_print_event: 11520 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 5760 rows
 adb_qr_printing_demo.silver_qr_printing.dim_machine: 1 row
 adb_qr_printing_demo.silver_qr_printing.dim_product: 1 row
-adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 24 rows
-adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 24 rows
-adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 20 rows
+adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 96 rows
+adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 96 rows
 ```
 
 Production overview KPI check:
 
 ```text
-latest_production_hour: 2026-06-15T23:00:00.000Z
+timezone: Asia/Bangkok
+first_production_hour: 2026-06-15T07:00:00.000
+latest_production_hour: 2026-06-20T06:00:00.000
 machine_id: M01
-items_processed: 2880
-avg_reject_rate_pct: 9.55
-avg_qr_read_rate_pct: 98.23
-avg_quality_pct: 90.45
+items_processed: 11520
+gold_hourly_kpi_rows: 96
 ```
 
 ## Saved Databricks SQL Queries
@@ -223,10 +255,10 @@ Downtime and Faults: 5 widgets
 
 - Workflow name: `qr-printing-serverless-sql-daily-refresh`
 - Job ID: `205329090700528`
-- Latest verified run ID: `811234223268645`
+- Latest verified run ID: `536209218276513`
 - Result: `SUCCESS`
 - Schedule: `07:10 Bangkok daily`
-- Pause status: `UNPAUSED`
+- Pause status: `PAUSED`
 - Databricks job email notifications: success/failure
 - Notification recipient:
 
@@ -242,7 +274,11 @@ refresh_medallion_sql_notebook
 ```
 
 - Compute: `Serverless Starter Warehouse`
-- Current status: workflow scheduled, unpaused, and successfully test-run.
+- Current status: workflow is paused for cost control and was previously successfully test-run.
+- Schedule controller: Azure Function unpauses this job at 07:05 Bangkok and pauses it again at 07:30 Bangkok. Outside that window, the job should normally be `PAUSED`.
+- Local follow-up schedule: launchd exports the Databricks result tables into DuckDB at 07:25 Bangkok for DBeaver practice, and Codex reports data quality at 07:45 Bangkok.
+- Current source behavior: Serverless SQL reads daily machine JSON directly from the scheduled Azure Function ADLS folder through `qr_raw_adls_location` and uses `MERGE` to update/insert Bronze and Silver rows. Gold remains view-based, then the dashboard and monitoring tasks refresh.
+- The earlier Databricks raw-files volume mirror is no longer required for the daily scheduled path; it can remain available only for manual validation/backfill experiments.
 
 ## Databricks Alerting and Monitoring
 

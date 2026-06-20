@@ -13,3 +13,17 @@ venv/
 dist/
 build/
 
+# Local learning and quiz files, not for GitHub.
+docs/learning_and_quiz.md
+databricks_quiz.html
+databricks_split_learning.html
+
+# Local DuckDB mirror and validation workspace, not for GitHub.
+data/local/
+docs/local_duckdb_mirror.md
+scripts/create_duckdb_mirror.py
+scripts/export_databricks_to_duckdb_after_refresh.sh
+sql/duckdb_validation_queries.sql
+
+# Local generated raw backfill files, not for GitHub.
+data/raw/qr_printing/start_date=2026-*/

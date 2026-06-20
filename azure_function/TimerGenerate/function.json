@@ -13,7 +13,7 @@
       "name": "output_blob",
       "type": "blob",
       "direction": "out",
-      "path": "raw/qr_printing/uploaded_at=azure_function/machine_api_response.json",
+      "path": "raw/qr_printing/uploaded_at=azure_function/{DateTime:yyyyMMddTHHmmssZ}/machine_api_response.json",
       "connection": "TARGET_STORAGE_CONNECTION"
     }
   ]

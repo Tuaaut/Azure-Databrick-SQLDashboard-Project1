@@ -29,8 +29,9 @@ Working scheduled job:
 Job: qr-printing-serverless-sql-daily-refresh
 Job ID: 205329090700528
 Schedule: 07:10 Bangkok daily
-Pause status: UNPAUSED
-Latest test run: 811234223268645
+Normal pause status outside run window: PAUSED
+Azure Function controller: unpause at 07:05 Bangkok, pause at 07:30 Bangkok
+Latest test run: 536209218276513
 Result: SUCCESS
 ```
 
@@ -51,9 +52,12 @@ Use:
 Databricks audit tables/views
 → Databricks job success/failure email to Pattaratua@gmail.com
 → detailed run summary stored in Databricks tables/views
+→ Codex daily quality report at 07:45 Bangkok
 ```
 
 Azure Monitor is still useful for infrastructure alerts such as Function failure, Databricks resource errors, and cost alerts.
+
+The Databricks job is expected to be `PAUSED` when the morning window is closed. `PAUSED` after 07:30 Bangkok is a cost-control success state, not a monitoring failure.
 
 ## Audit Tables
 
@@ -98,7 +102,7 @@ sql/pipeline_audit_monitoring.sql
 The alert covers these stages:
 
 ```text
-ADLS raw file
+Daily source/raw file status
 Bronze raw tables
 Silver fact tables
 Gold KPI views
@@ -119,8 +123,8 @@ GOLD: total 68, new 65, SUCCESS
 Important note:
 
 ```text
-The current raw daily JSON has 2880 print events, 1440 telemetry rows, and 67 log rows.
-The current Bronze/Silver/Gold tables now reflect that real generated daily JSON test load.
+Each simulated business day has 2880 print events and 1440 telemetry rows.
+The current Bronze/Silver/Gold tables now reflect accumulated daily demo data through the latest completed business day.
 ```
 
 ## Stored Summary Body
@@ -131,7 +135,7 @@ The stored summary body includes:
 Pipeline status
 Business date
 Run timestamp
-ADLS raw path and file size
+Daily source/raw path and file size when available
 Raw payload counts
 Bronze total/new row counts
 Silver total/new row counts
@@ -148,6 +152,8 @@ Average vibration
 Dashboard link
 Cost reminder
 ```
+
+Latest monitoring views expose business timestamps as Bangkok-local `TIMESTAMP_NTZ` values, including `run_ts` and `latest_production_hour`.
 
 ## How to Run Manually
 

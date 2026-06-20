@@ -9,6 +9,8 @@ It uses a simulated manufacturing scenario:
 - machine warning/fault logs
 - production, QR quality, machine health, downtime, and OEE-style KPIs
 
+Business timestamps in Bronze, Silver, Gold, and latest monitoring views are stored as Bangkok-local `TIMESTAMP_NTZ` values to avoid manual UTC conversion in Databricks SQL results.
+
 ## Short Version
 
 The original plan was to build the medallion pipeline with PySpark notebooks on a temporary Databricks job cluster.
@@ -21,9 +23,9 @@ Current working path:
 
 ```text
 Serverless SQL
-→ Unity Catalog Volume raw JSON
-→ Bronze tables
-→ Silver tables
+→ daily JSON files in ADLS through a Unity Catalog external location
+→ incremental Bronze MERGE
+→ incremental Silver MERGE
 → Gold KPI views
 → AI/BI dashboard with widgets
 → Serverless SQL workflow refresh
@@ -44,7 +46,7 @@ Serverless SQL
 - PySpark Databricks Workflow created.
 - Serverless SQL Warehouse verified.
 - Bronze/Silver/Gold tables and views created through Serverless SQL.
-- Real generated daily JSON loaded through Serverless SQL from a Unity Catalog Volume.
+- Serverless SQL daily ingestion now reads raw JSON directly from ADLS and merges rows instead of rebuilding the full accumulated demo range.
 - Row counts and KPI output verified.
 - Saved SQL queries created.
 - AI/BI dashboard created, published, and populated with widgets.
@@ -178,7 +180,7 @@ The working daily automation now uses the Serverless SQL workflow instead:
 Workflow name: qr-printing-serverless-sql-daily-refresh
 Job ID: 205329090700528
 Schedule: 07:10 Bangkok daily
-Status: UNPAUSED
+Status: PAUSED
 Email notifications: success/failure to Pattaratua@gmail.com
 ```
 
@@ -232,7 +234,7 @@ The Function uses a timer trigger and a blob output binding to write JSON into A
 Verified manual output path:
 
 ```text
-raw/qr_printing/uploaded_at=azure_function_manual/machine_api_response.json
+raw/qr_printing/uploaded_at=azure_function_manual/YYYYMMDDTHHMMSSZ/machine_api_response.json
 ```
 
 Verified manual output counts:
@@ -240,16 +242,16 @@ Verified manual output counts:
 ```text
 print_events: 2880
 machine_telemetry: 1440
-machine_logs: 67
+machine_logs: 61
 ```
 
 Scheduled daily output path:
 
 ```text
-raw/qr_printing/uploaded_at=azure_function/machine_api_response.json
+raw/qr_printing/uploaded_at=azure_function/YYYYMMDDTHHMMSSZ/machine_api_response.json
 ```
 
-Note: the current blob binding writes the latest daily file to a stable path. For date-partitioned history, add SDK-based upload later when Azure package downloads are stable.
+Note: the current blob binding writes each Function output to a timestamped folder. This prevents the raw JSON output from being overwritten by the next run.
 
 ## Architecture
 
@@ -270,14 +272,45 @@ Raw JSON files or Machine API
 Actual working architecture:
 
 ```text
-Sample data / SQL seed data
+ADLS daily JSON source through Unity Catalog external location
 → Databricks Serverless SQL Warehouse
-→ Bronze Delta tables
-→ Silver fact/dimension tables
+→ Bronze Delta tables updated by MERGE
+→ Silver fact/dimension tables updated by MERGE
 → Gold KPI views
 → Databricks AI/BI dashboard
 → Serverless SQL workflow refresh
 ```
+
+Current scheduled dependency chain:
+
+```text
+07:00 Bangkok Azure Function timer
+→ ADLS raw JSON timestamped folder
+
+07:05 Bangkok Azure Function controller
+→ unpause Databricks Serverless SQL workflow
+
+07:10 Bangkok Databricks Serverless SQL workflow
+→ run serverless_manual_bootstrap.sql
+→ merge new raw JSON rows into Bronze Delta tables
+→ merge new Bronze rows into Silver Delta tables
+→ refresh Gold KPI views
+→ refresh dashboard
+→ run pipeline_audit_monitoring.sql
+→ write latest run summary and email-ready payload
+→ Databricks job success/failure email notification
+
+07:25 Bangkok local DuckDB export
+→ mirror Databricks result tables into data/local/qr_printing_mirror.duckdb for DBeaver practice
+
+07:30 Bangkok Azure Function controller
+→ pause Databricks Serverless SQL workflow again
+
+07:45 Bangkok Codex automation
+→ report source-to-Databricks validation, DuckDB mirror freshness, and cost safety
+```
+
+The Serverless SQL refresh no longer rebuilds the main Bronze and Silver tables with `CREATE OR REPLACE TABLE`. It now creates the target Delta tables only if missing, reads daily JSON directly from the scheduled Azure Function ADLS folder via `qr_raw_adls_location`, and uses `MERGE` keys to update/insert Bronze and Silver rows. Gold remains view-based.
 
 Planned resilient raw generation architecture:
 
@@ -303,7 +336,7 @@ Azure Function timer
 - PySpark workflow job ID: `383404437598073`
 - Paused daily PySpark workflow job ID: `67401473932489`
 - Serverless SQL workflow job ID: `205329090700528`
-- Latest successful Serverless SQL workflow run: `811234223268645`
+- Latest successful Serverless SQL workflow run: `536209218276513`
 - Dashboard ID: `01f1699203951f9389c58c97cd030c79`
 
 Published dashboard:
@@ -326,31 +359,28 @@ docs/alerting_monitoring.md
 
 ## Verified Data Objects
 
-Created and verified through Serverless SQL after the real-data test run:
+Created and verified through Serverless SQL after the direct ADLS incremental-source fix:
 
 ```text
-adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 2880 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 1440 rows
-adb_qr_printing_demo.bronze_qr_printing.machine_logs_raw: 67 rows
-adb_qr_printing_demo.silver_qr_printing.fact_print_event: 2880 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 1440 rows
-adb_qr_printing_demo.silver_qr_printing.fact_machine_log: 67 rows
+adb_qr_printing_demo.bronze_qr_printing.print_events_raw: 11520 rows
+adb_qr_printing_demo.bronze_qr_printing.machine_telemetry_raw: 5760 rows
+adb_qr_printing_demo.silver_qr_printing.fact_print_event: 11520 rows
+adb_qr_printing_demo.silver_qr_printing.fact_machine_telemetry_minute: 5760 rows
 adb_qr_printing_demo.silver_qr_printing.dim_machine: 1 row
 adb_qr_printing_demo.silver_qr_printing.dim_product: 1 row
-adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 24 rows
-adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 24 rows
-adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary: 20 rows
+adb_qr_printing_demo.gold_qr_printing.hourly_kpi_summary: 96 rows
+adb_qr_printing_demo.gold_qr_printing.machine_health_summary: 96 rows
 ```
 
 Verified KPI example:
 
 ```text
-latest_production_hour: 2026-06-15T23:00:00.000Z
+timezone: Asia/Bangkok
+first_production_hour: 2026-06-15T07:00:00.000
+latest_production_hour: 2026-06-20T06:00:00.000
 machine_id: M01
-items_processed: 2880
-avg_reject_rate_pct: 9.55
-avg_qr_read_rate_pct: 98.23
-avg_quality_pct: 90.45
+items_processed: 11520
+gold_hourly_kpi_rows: 96
 ```
 
 ## Dashboard
@@ -380,8 +410,8 @@ QR Downtime and Faults: 039687cc-b864-4ead-a420-4932b1a18a10
 ## Cost Controls
 
 - No always-on all-purpose cluster.
-- SQL Warehouse is Serverless, Small, with 10-minute auto-stop.
-- Working Serverless SQL workflow is scheduled daily at 07:10 Bangkok.
+- SQL Warehouse is Serverless, 2X-Small, with 10-minute auto-stop.
+- Working Serverless SQL workflow is scheduled daily at 07:10 Bangkok, but the Azure Function controller keeps it active only during the morning run window.
 - PySpark cluster workflows remain manual or paused.
 - Broad project resource-group budget was removed.
 - Databricks-focused budgets were created instead.
@@ -401,6 +431,64 @@ These budgets exclude Fabric and the ADLS storage account. They target:
 Databricks workspace resource
 Databricks-managed compute resource group
 ```
+
+### Current SQL Warehouse Cost Decision
+
+The active Databricks SQL warehouse was resized from `Small` to `2X-Small` to reduce cost for showcase and validation runs.
+
+Current confirmed settings:
+
+```text
+warehouse_id: a10d49c1b859854a
+name: Serverless Starter Warehouse
+size: 2X-Small
+state: STOPPED
+auto_stop_mins: 10
+max_num_clusters: 1
+```
+
+This warehouse should be used for:
+
+- scheduled Databricks showcase refreshes
+- Azure Function to Databricks demo flow
+- final Databricks-side validation
+- small live demo queries
+
+It should not be the default engine for repeated heavy SQL exploration. DBeaver connections to Databricks SQL still use the SQL warehouse and can restart billable serverless compute.
+
+### Future Local Mirror For Heavy SQL
+
+For local learning and SQL practice, mirror the needed lakehouse data into a local database and query it locally.
+
+Preferred pattern:
+
+```text
+Databricks Bronze/Silver/Gold/Ops result tables
+→ local mirror
+→ DuckDB
+→ DBeaver or local SQL scripts for practice
+→ primary validation remains ADLS-to-Databricks cross-checks
+```
+
+Recommended use:
+
+```text
+DuckDB: local SQL learning, DBeaver practice, and exported row-count checks.
+Databricks SQL: scheduled demo, showcase, and primary cloud-side validation.
+```
+
+This keeps the real Databricks architecture for the portfolio while avoiding repeated serverless warehouse cost during learning and investigation.
+
+Current local mirror flow:
+
+```text
+07:10 Bangkok Databricks refresh
+→ 07:25 Bangkok local launchd export
+→ data/local/qr_printing_mirror.duckdb
+→ DBeaver local DuckDB connection
+```
+
+The local export guard skips when the Databricks job is paused, so it should not wake the SQL Warehouse unnecessarily.
 
 ## Useful Commands
 
@@ -441,7 +529,7 @@ Check compute state:
 
 ```bash
 databricks clusters list -o json | jq -r '.[] | [.cluster_id,.cluster_name,.state,.node_type_id] | @tsv'
-databricks warehouses get a10d49c1b859854a -o json | jq '{name,state,auto_stop_mins}'
+databricks warehouses get a10d49c1b859854a -o json | jq '{name,state,cluster_size,auto_stop_mins,num_active_sessions,num_clusters}'
 ```
 
 Stop SQL Warehouse:
@@ -458,10 +546,12 @@ When learning this project later, use this order:
 2. What Bronze/Silver/Gold means.
 3. What Azure resources were created.
 4. Why the PySpark path was prepared but blocked.
-5. How Serverless SQL completed the same business outcome.
+5. How Serverless SQL completed the same business outcome and now accumulates daily demo data.
 6. How Gold KPI views feed dashboard widgets.
 7. How the Serverless SQL workflow refreshes data and dashboard.
 8. How to verify cost safety.
+9. How the Gold schema supports business SQL questions.
+10. How Bangkok-local `TIMESTAMP_NTZ` avoids UTC conversion confusion.
 
 Simple explanation to remember:
 

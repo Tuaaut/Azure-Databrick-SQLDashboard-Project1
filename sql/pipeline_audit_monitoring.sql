@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing;
 
 CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.pipeline_run_audit (
   run_id STRING,
-  run_ts TIMESTAMP,
+  run_ts TIMESTAMP_NTZ,
   business_date DATE,
   status STRING,
   trigger_type STRING,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.pipeline_run_aud
   gold_hourly_kpi_rows_new BIGINT,
   gold_machine_health_rows_new BIGINT,
   gold_downtime_fault_rows_new BIGINT,
-  latest_production_hour TIMESTAMP,
+  latest_production_hour TIMESTAMP_NTZ,
   total_items_processed BIGINT,
   avg_reject_rate_pct DOUBLE,
   avg_qr_read_rate_pct DOUBLE,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.pipeline_run_aud
 
 CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.pipeline_stage_audit (
   run_id STRING,
-  run_ts TIMESTAMP,
+  run_ts TIMESTAMP_NTZ,
   business_date DATE,
   stage_name STRING,
   stage_status STRING,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.pipeline_stage_a
 
 CREATE TABLE IF NOT EXISTS adb_qr_printing_demo.ops_qr_printing.email_alert_outbox (
   run_id STRING,
-  created_at TIMESTAMP,
+  created_at TIMESTAMP_NTZ,
   alert_status STRING,
   recipient_hint STRING,
   subject STRING,
@@ -122,19 +122,29 @@ downtime AS (
     coalesce(sum(warning_count), 0) AS total_warning_count,
     coalesce(sum(downtime_minutes), 0) AS total_downtime_minutes
   FROM adb_qr_printing_demo.gold_qr_printing.downtime_fault_summary
+),
+freshness AS (
+  SELECT
+    date_sub(current_date(), 1) AS expected_latest_business_date
 )
 SELECT
   uuid() AS run_id,
-  current_timestamp() AS run_ts,
+  CAST(from_utc_timestamp(current_timestamp(), 'Asia/Bangkok') AS TIMESTAMP_NTZ) AS run_ts,
   coalesce(kpi.business_date, current_date()) AS business_date,
-  'SUCCESS' AS status,
+  CASE
+    WHEN kpi.business_date >= freshness.expected_latest_business_date THEN 'SUCCESS'
+    ELSE 'STALE_DATA'
+  END AS status,
   'SERVERLESS_SQL_REFRESH' AS trigger_type,
-  '/Volumes/adb_qr_printing_demo/bronze_qr_printing/raw_files/qr_printing/start_date=2026-06-15/machine_api_response.json' AS raw_source_path,
-  'VERIFIED_VOLUME_RAW_JSON_OUTPUT' AS raw_file_status,
-  1525874L AS raw_file_size_bytes,
-  2880L AS raw_print_events_count,
-  1440L AS raw_machine_telemetry_count,
-  67L AS raw_machine_logs_count,
+  'abfss://raw@qrdbx06162114.dfs.core.windows.net/qr_printing/uploaded_at=azure_function/*/machine_api_response.json' AS raw_source_path,
+  CASE
+    WHEN kpi.business_date >= freshness.expected_latest_business_date THEN 'CURRENT_SERVERLESS_SQL_DAILY_SOURCE'
+    ELSE concat('STALE_ADLS_JSON_SOURCE expected >= ', cast(freshness.expected_latest_business_date AS STRING))
+  END AS raw_file_status,
+  CAST(NULL AS BIGINT) AS raw_file_size_bytes,
+  bronze.bronze_print_events_total AS raw_print_events_count,
+  bronze.bronze_machine_telemetry_total AS raw_machine_telemetry_count,
+  bronze.bronze_machine_logs_total AS raw_machine_logs_count,
   bronze.*,
   greatest(bronze.bronze_print_events_total - previous.prev_bronze_print_events_total, 0) AS bronze_print_events_new,
   greatest(bronze.bronze_machine_telemetry_total - previous.prev_bronze_machine_telemetry_total, 0) AS bronze_machine_telemetry_new,
@@ -164,7 +174,8 @@ CROSS JOIN silver
 CROSS JOIN gold
 CROSS JOIN kpi
 CROSS JOIN health
-CROSS JOIN downtime;
+CROSS JOIN downtime
+CROSS JOIN freshness;
 
 CREATE OR REPLACE VIEW adb_qr_printing_demo.ops_qr_printing.current_pipeline_alert_staging AS
 SELECT
@@ -283,7 +294,7 @@ FROM adb_qr_printing_demo.ops_qr_printing.current_pipeline_alert_snapshot;
 CREATE OR REPLACE VIEW adb_qr_printing_demo.ops_qr_printing.latest_pipeline_alert_email AS
 SELECT
   run_id,
-  created_at,
+  CAST(created_at AS TIMESTAMP_NTZ) AS created_at,
   recipient_hint,
   subject,
   body,
@@ -294,6 +305,9 @@ FROM adb_qr_printing_demo.ops_qr_printing.email_alert_outbox
 QUALIFY row_number() OVER (ORDER BY created_at DESC) = 1;
 
 CREATE OR REPLACE VIEW adb_qr_printing_demo.ops_qr_printing.latest_pipeline_run_summary AS
-SELECT *
+SELECT
+  * EXCEPT(run_ts, latest_production_hour),
+  CAST(run_ts AS TIMESTAMP_NTZ) AS run_ts,
+  CAST(latest_production_hour AS TIMESTAMP_NTZ) AS latest_production_hour
 FROM adb_qr_printing_demo.ops_qr_printing.pipeline_run_audit
 QUALIFY row_number() OVER (ORDER BY run_ts DESC) = 1;

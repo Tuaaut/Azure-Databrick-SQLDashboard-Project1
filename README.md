@@ -37,18 +37,20 @@ flowchart TB
         G["Databricks AI/BI dashboard<br/>business monitoring"]
         H["Ops audit tables<br/>stage counts and run status"]
         I["Audit summary payload<br/>Databricks job email enabled"]
+        M["Local DuckDB mirror<br/>learning and DBeaver practice"]
         F --> G
         F --> H --> I
+        F -. exported after refresh .-> M
     end
 
     subgraph Cost["Cost Controls"]
-        J["Serverless SQL Warehouse<br/>Small size, auto-stop"]
-        K["Manual/paused workflows<br/>no always-on cluster"]
+        J["Serverless SQL Warehouse<br/>2X-Small size, auto-stop"]
+        K["Azure Function controller<br/>07:05 unpause, 07:30 pause"]
         L["Azure budget alerts"]
     end
 
     J -. runs SQL pipeline .-> D
-    K -. controls refresh .-> F
+    K -. opens short daily run window .-> F
     L -. monitors spend .-> J
 ```
 
@@ -57,13 +59,15 @@ Current working path uses Databricks Serverless SQL for the medallion pipeline a
 ## Tech Stack
 
 - Azure Databricks
-- Databricks SQL Warehouse, Serverless, Small size, auto-stop enabled
+- Databricks SQL Warehouse, Serverless, 2X-Small size, auto-stop enabled
 - Unity Catalog style catalog/schema/table organization
 - Delta-style Bronze, Silver, and Gold lakehouse layers
+- Bangkok-local `TIMESTAMP_NTZ` business timestamps for easier cross-checking
 - ADLS Gen2 for raw JSON landing and reprocessing
-- Azure Function Consumption plan for daily raw JSON generation
+- Azure Function Consumption plan for daily raw JSON generation and Databricks pause/unpause control
 - Databricks Workflows / Jobs for scheduled refresh
 - Databricks AI/BI Dashboard for KPI presentation
+- Local DuckDB mirror for DBeaver learning and practice
 - SQL, Python, shell scripts, Azure CLI, Databricks CLI
 - Azure Budget alerts and email-ready pipeline monitoring
 
@@ -91,15 +95,17 @@ Working:
 
 - Raw QR printing JSON generation
 - ADLS Gen2 raw landing pattern
-- Bronze, Silver, and Gold SQL pipeline using real generated daily JSON
+- Bronze, Silver, and Gold SQL pipeline using accumulated daily demo data
 - Gold KPI views for production, quality, machine health, downtime, and OEE-style reporting
 - Databricks dashboard asset
 - Serverless SQL Warehouse with auto-stop
 - Databricks workflow/job definitions
 - Pipeline audit tables and email-ready alert payload
 - Daily Serverless SQL workflow success/failure email notification
-- Real-data Serverless SQL test run with 2,880 print events, 1,440 telemetry rows, and 67 log rows
-- Azure Function daily generator deployment path
+- Azure Function daily generator and Databricks pause/unpause controller
+- Morning run window: 07:05 unpause, 07:10 Databricks refresh, 07:25 DuckDB export, 07:30 pause, 07:45 Codex quality report
+- Accumulated Serverless SQL test run with 11,520 print events and 96 hourly Gold KPI rows
+- Business timestamps verified in Bangkok-local time, with latest production hour `2026-06-20T06:00:00.000`
 
 Prepared but blocked:
 
@@ -111,7 +117,7 @@ Prepared but blocked:
 - `notebooks/` - PySpark Bronze, Silver, and Gold notebooks
 - `sql/` - Serverless SQL bootstrap, dashboard queries, and audit monitoring SQL
 - `scripts/` - local generation, ADLS upload, Databricks SQL runner, and Azure Function deployment helpers
-- `azure_function/` - Consumption-plan Function App code for daily raw JSON generation
+- `azure_function/` - Consumption-plan Function App code for daily raw JSON generation and Databricks job pause/unpause control
 - `docs/` - detailed implementation notes and learning material
 - `docs/screenshots/` - Databricks UI screenshots for GitHub presentation
 

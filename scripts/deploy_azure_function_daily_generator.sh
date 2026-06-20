@@ -67,12 +67,16 @@ az functionapp config appsettings set \
     "QR_PRODUCT_NAME=Cola Can 330ml" \
     "QR_PLANNED_SPEED_CPM=84.0" \
     "QR_EVENTS_PER_HOUR=120" \
-    "AzureWebJobsFeatureFlags=EnableWorkerIndexing"
+    "AzureWebJobsFeatureFlags=EnableWorkerIndexing" \
+    "DATABRICKS_HOST=https://adb-7405612371776871.11.azuredatabricks.net" \
+    "DATABRICKS_AZURE_RESOURCE_ID=/subscriptions/c3136072-0e2e-4a2d-b5a5-b00700a61661/resourceGroups/rg-qr-dbx-demo/providers/Microsoft.Databricks/workspaces/adb-qr-printing-demo" \
+    "DATABRICKS_JOB_ID=205329090700528" \
+    "DATABRICKS_UNPAUSE_SCHEDULE=0 5 0 * * *" \
+    "DATABRICKS_PAUSE_SCHEDULE=0 30 0 * * *"
 
 rm -rf "$PACKAGE_DIR" "$PACKAGE_PATH"
 mkdir -p "$PACKAGE_DIR"
-cp azure_function/host.json azure_function/requirements.txt azure_function/qr_generator.py "$PACKAGE_DIR/"
-cp -R azure_function/TimerGenerate azure_function/ManualGenerate "$PACKAGE_DIR/"
+cp azure_function/host.json azure_function/requirements.txt azure_function/qr_generator.py azure_function/databricks_controller.py azure_function/function_app.py "$PACKAGE_DIR/"
 (cd "$PACKAGE_DIR" && zip -qr "$PACKAGE_PATH" .)
 
 function_storage_key="$(az storage account keys list \

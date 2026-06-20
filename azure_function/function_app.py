@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import azure.functions as func
 
+from databricks_controller import set_databricks_job_pause_status
 from qr_generator import build_payload
 
 
@@ -63,6 +64,34 @@ def manual_generate(req: func.HttpRequest, output_blob: func.Out[str]) -> func.H
         status_code=200,
         mimetype="application/json",
     )
+
+
+@app.timer_trigger(
+    schedule="%DATABRICKS_UNPAUSE_SCHEDULE%",
+    arg_name="timer",
+    run_on_startup=False,
+    use_monitor=True,
+)
+def unpause_databricks_job(timer: func.TimerRequest) -> None:
+    if timer.past_due:
+        logging.warning("Unpause Databricks timer is past due.")
+
+    result = set_databricks_job_pause_status("UNPAUSED")
+    logging.info("Unpause Databricks completed: %s", result)
+
+
+@app.timer_trigger(
+    schedule="%DATABRICKS_PAUSE_SCHEDULE%",
+    arg_name="timer",
+    run_on_startup=False,
+    use_monitor=True,
+)
+def pause_databricks_job(timer: func.TimerRequest) -> None:
+    if timer.past_due:
+        logging.warning("Pause Databricks timer is past due.")
+
+    result = set_databricks_job_pause_status("PAUSED")
+    logging.info("Pause Databricks completed: %s", result)
 
 
 def generate_payload() -> dict:
