@@ -14,7 +14,6 @@ Live Databricks links are intentionally not included because the workspace, dash
 - Daily ADLS-to-Databricks orchestration with an Azure Function cost controller.
 - Dashboard-ready KPIs for production output, QR quality, machine health, downtime, and OEE-style monitoring.
 - Operational audit tables, email-ready pipeline summaries, and a daily quality-check automation.
-- A local DuckDB mirror for DBeaver practice without making DuckDB the primary validation source.
 
 ## Business Questions
 
@@ -69,11 +68,9 @@ flowchart TB
         G["AI/BI dashboard"]
         H["Ops audit tables"]
         I["Job email notification<br/>and alert payload"]
-        M["Local DuckDB mirror<br/>DBeaver learning/practice"]
         Q["Codex daily quality report<br/>07:45 Bangkok"]
         F --> G
         F --> H --> I
-        F -. 07:25 export .-> M
         H --> Q
     end
 
@@ -95,7 +92,6 @@ flowchart TB
 | 07:00 | Azure Function writes QR JSON to ADLS | Create the daily raw source payload |
 | 07:05 | Azure Function unpauses Databricks job | Open a short run window |
 | 07:10 | Databricks Serverless SQL workflow runs | Refresh Bronze, Silver, Gold, dashboard, and audit tables |
-| 07:25 | Local launchd exports Databricks tables to DuckDB | Local DBeaver practice mirror |
 | 07:30 | Azure Function pauses Databricks job | Prevent all-day scheduled compute wakeups |
 | 07:45 | Codex quality report runs | Summarize source-to-Databricks validation and cost safety |
 
@@ -119,8 +115,6 @@ scheduled Azure Function JSON in ADLS
 
 The daily quality report checks row counts, latest business date, duplicate keys, null critical keys, and whether Gold aggregates line up with Silver detail totals.
 
-DuckDB is intentionally a local learning mirror, not the source of truth. It is useful for DBeaver practice and quick SQL exploration after the Databricks result tables are exported.
-
 ## Tech Stack
 
 - Azure Databricks
@@ -131,7 +125,6 @@ DuckDB is intentionally a local learning mirror, not the source of truth. It is 
 - ADLS Gen2 raw landing
 - Azure Function Consumption plan for raw generation and Databricks pause/unpause control
 - Managed identity and Databricks service principal permission scoped to the daily job
-- Local DuckDB mirror for DBeaver practice
 - Azure CLI, Databricks CLI, SQL, Python, shell scripts
 
 ## Repository Map
@@ -144,8 +137,6 @@ DuckDB is intentionally a local learning mirror, not the source of truth. It is 
 | `scripts/` | Deployment, data generation, upload, and Databricks helper scripts |
 | `docs/` | Implementation details, Azure resources, KPI definitions, and monitoring notes |
 | `docs/screenshots/` | Databricks UI screenshots for portfolio review |
-
-Local-only learning and DuckDB files are ignored by Git and are not part of the public GitHub project.
 
 ## Screenshots
 
@@ -172,7 +163,6 @@ The project avoids always-on Databricks compute:
 - The Serverless SQL Warehouse is `2X-Small` with 10-minute auto-stop.
 - The Databricks workflow is normally `PAUSED`.
 - Azure Function opens the Databricks job window only from 07:05 to 07:30 Bangkok.
-- The DuckDB export is local and skips when the Databricks schedule is paused.
 - Azure budget alerts are documented for Databricks-focused spend monitoring.
 
 This matters because SQL Warehouse auto-stop only stops compute after work has started. Pausing the Databricks job prevents the schedule from waking compute in the first place.

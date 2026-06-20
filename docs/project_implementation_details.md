@@ -300,14 +300,11 @@ Current scheduled dependency chain:
 → write latest run summary and email-ready payload
 → Databricks job success/failure email notification
 
-07:25 Bangkok local DuckDB export
-→ mirror Databricks result tables into data/local/qr_printing_mirror.duckdb for DBeaver practice
-
 07:30 Bangkok Azure Function controller
 → pause Databricks Serverless SQL workflow again
 
 07:45 Bangkok Codex automation
-→ report source-to-Databricks validation, DuckDB mirror freshness, and cost safety
+→ report source-to-Databricks validation and cost safety
 ```
 
 The Serverless SQL refresh no longer rebuilds the main Bronze and Silver tables with `CREATE OR REPLACE TABLE`. It now creates the target Delta tables only if missing, reads daily JSON directly from the scheduled Azure Function ADLS folder via `qr_raw_adls_location`, and uses `MERGE` keys to update/insert Bronze and Silver rows. Gold remains view-based.
@@ -454,41 +451,7 @@ This warehouse should be used for:
 - final Databricks-side validation
 - small live demo queries
 
-It should not be the default engine for repeated heavy SQL exploration. DBeaver connections to Databricks SQL still use the SQL warehouse and can restart billable serverless compute.
-
-### Future Local Mirror For Heavy SQL
-
-For local learning and SQL practice, mirror the needed lakehouse data into a local database and query it locally.
-
-Preferred pattern:
-
-```text
-Databricks Bronze/Silver/Gold/Ops result tables
-→ local mirror
-→ DuckDB
-→ DBeaver or local SQL scripts for practice
-→ primary validation remains ADLS-to-Databricks cross-checks
-```
-
-Recommended use:
-
-```text
-DuckDB: local SQL learning, DBeaver practice, and exported row-count checks.
-Databricks SQL: scheduled demo, showcase, and primary cloud-side validation.
-```
-
-This keeps the real Databricks architecture for the portfolio while avoiding repeated serverless warehouse cost during learning and investigation.
-
-Current local mirror flow:
-
-```text
-07:10 Bangkok Databricks refresh
-→ 07:25 Bangkok local launchd export
-→ data/local/qr_printing_mirror.duckdb
-→ DBeaver local DuckDB connection
-```
-
-The local export guard skips when the Databricks job is paused, so it should not wake the SQL Warehouse unnecessarily.
+It should not be the default engine for repeated exploratory SQL because any live Databricks SQL session can restart billable serverless compute.
 
 ## Useful Commands
 

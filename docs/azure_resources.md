@@ -276,7 +276,7 @@ refresh_medallion_sql_notebook
 - Compute: `Serverless Starter Warehouse`
 - Current status: workflow is paused for cost control and was previously successfully test-run.
 - Schedule controller: Azure Function unpauses this job at 07:05 Bangkok and pauses it again at 07:30 Bangkok. Outside that window, the job should normally be `PAUSED`.
-- Local follow-up schedule: launchd exports the Databricks result tables into DuckDB at 07:25 Bangkok for DBeaver practice, and Codex reports data quality at 07:45 Bangkok.
+- Codex reports data quality at 07:45 Bangkok after the morning run window.
 - Current source behavior: Serverless SQL reads daily machine JSON directly from the scheduled Azure Function ADLS folder through `qr_raw_adls_location` and uses `MERGE` to update/insert Bronze and Silver rows. Gold remains view-based, then the dashboard and monitoring tasks refresh.
 - The earlier Databricks raw-files volume mirror is no longer required for the daily scheduled path; it can remain available only for manual validation/backfill experiments.
 
